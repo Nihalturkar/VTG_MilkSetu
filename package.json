@@ -1,0 +1,20 @@
+{
+  "name": "vtgmilksetu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VTG MilkSetu — backend API + admin panel, deployed as one Node service",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix admin install",
+    "_comment_render": "Render/Railway build command: just `npm run render-build`",
+    "render-build": "npm run install:all && npm run build",
+    "build": "npm run build:admin && npm run build:backend",
+    "build:admin": "npm --prefix admin run build",
+    "build:backend": "npm --prefix backend run build",
+    "start": "npm --prefix backend run start",
+    "seed:admin": "npm --prefix backend run seed:admin",
+    "test": "npm --prefix backend test"
+  }
+}
