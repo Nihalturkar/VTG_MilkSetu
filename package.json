@@ -7,7 +7,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "install:all": "npm --prefix backend install && npm --prefix admin install",
+    "install:all": "npm --prefix backend install --include=dev && npm --prefix admin install --include=dev",
     "_comment_render": "Render/Railway build command: just `npm run render-build`",
     "render-build": "npm run install:all && npm run build",
     "build": "npm run build:admin && npm run build:backend",
