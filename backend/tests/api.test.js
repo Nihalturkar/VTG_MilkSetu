@@ -182,8 +182,10 @@ async function call(method, path, { token, body } = {}) {
     (await call('GET', '/reports?from=2026-10-10&to=2026-10-01', { token: T1 })).json?.error?.code);
 
   console.log('[12] Admin');
+  chk('admin rejects email in place of username', 'validation_error',
+    (await call('POST', '/admin/login', { body: { email: 'a@b.com', password: 'wrongpassword' } })).json?.error?.code);
   chk('admin bad creds', 'unauthorized',
-    (await call('POST', '/admin/login', { body: { email: 'admin@vtgmilksetu.local', password: 'wrongpassword' } })).json?.error?.code);
+    (await call('POST', '/admin/login', { body: { username: 'vtgmilkmanager', password: 'wrongpassword' } })).json?.error?.code);
   chk('dairy token rejected on admin', 'unauthorized',
     (await call('GET', '/admin/dashboard', { token: T1 })).json?.error?.code);
   chk('admin route needs auth', 'unauthorized',
@@ -256,7 +258,31 @@ async function call(method, path, { token, body } = {}) {
   chk('profit isolated per dairy', 0,
     (await call('GET', `/profit?from=${today}&to=${today}`, { token: T2 })).json?.data?.overall?.income);
 
-  console.log('[16] PDF');
+  console.log('[16] App images');
+  chk('image listing is public', true,
+    Array.isArray((await call('GET', '/images')).json?.data?.images));
+  chk('unknown slot rejected', 'validation_error',
+    (await call('GET', '/images/notaslot')).json?.error?.code);
+  chk('unset slot is not_found', 'not_found',
+    (await call('GET', '/images/hero')).json?.error?.code);
+  chk('upload needs admin', 'unauthorized',
+    (await call('PUT', '/images/hero', { token: T1, body: { x: 1 } })).json?.error?.code);
+
+  console.log('[17] Weekly notice');
+  const notice = (await call('GET', '/notice', { token: T1 })).json?.data;
+  chk('notice endpoint responds', true, notice !== undefined);
+  // Either null (off, or not the configured weekday) or a fully-formed
+  // notice. Asserting null outright would depend on the day this runs.
+  const n = notice?.notice;
+  chk('notice is null or complete', true,
+    n === null || (typeof n?.from === 'string' && typeof n?.overall?.amount === 'number'));
+  chk('notice needs auth', 'unauthorized', (await call('GET', '/notice')).json?.error?.code);
+  chk('notice settings are admin-only', 'unauthorized',
+    (await call('GET', '/admin/notice', { token: T1 })).json?.error?.code);
+  chk('notice update is admin-only', 'unauthorized',
+    (await call('PUT', '/admin/notice', { token: T1, body: { enabled: true, startDay: 4, endDay: 2 } })).json?.error?.code);
+
+  console.log('[18] PDF');
   const pdf = await call('GET', '/reports/pdf', { token: T1 });
   chk('pdf magic bytes', '%PDF', pdf.buf.subarray(0, 4).toString());
   chk('pdf non-trivial size', true, pdf.buf.length > 2000);

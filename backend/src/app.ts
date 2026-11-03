@@ -1,10 +1,11 @@
-import express, { RequestHandler } from 'express';
+import express, { RequestHandler, raw } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import routes from './routes';
 import { env } from './config/env';
+import { IMAGE_MAX_BYTES, IMAGE_TYPES } from './utils/domain';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 interface AppOptions {
@@ -56,6 +57,16 @@ export function createApp({ adminHandler }: AppOptions = {}) {
   }
 
   // --- API --------------------------------------------------------------
+  // Image uploads carry the raw file, so they are parsed before (and instead
+  // of) express.json. Mounted here rather than in the router because the JSON
+  // parser below would otherwise consume the stream first and leave the
+  // handler with a base64-inflated string instead of the bytes.
+  const rawImage = raw({ type: [...IMAGE_TYPES], limit: IMAGE_MAX_BYTES });
+  app.use('/api/images', (req, res, nextFn) => {
+    if (req.method !== 'PUT') return nextFn();
+    rawImage(req, res, nextFn);
+  });
+
   app.use(express.json({ limit: '100kb' }));
   app.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
   app.use('/api', routes);

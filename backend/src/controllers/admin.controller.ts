@@ -15,7 +15,7 @@ import { unauthorized } from '../middleware/errors';
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const adminLoginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  username: z.string().trim().toLowerCase().min(3).max(40),
   password: z.string().min(8),
 });
 
@@ -39,11 +39,11 @@ const audit = (adminId: string, action: string, target?: string, meta?: unknown)
   );
 
 export const adminLogin: RequestHandler = asyncHandler(async (req, res) => {
-  const { email, password } = req.body as z.infer<typeof adminLoginSchema>;
+  const { username, password } = req.body as z.infer<typeof adminLoginSchema>;
 
-  const admin = await Admin.findOne({ email });
+  const admin = await Admin.findOne({ username });
   // Compare against a dummy hash when absent so timing doesn't reveal
-  // whether the email exists.
+  // whether the username exists.
   const hash = admin?.passwordHash ?? '$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvaliduu';
   const valid = await bcrypt.compare(password, hash);
 
@@ -52,7 +52,7 @@ export const adminLogin: RequestHandler = asyncHandler(async (req, res) => {
   await audit(String(admin._id), 'admin.login');
   res.json({
     ok: true,
-    data: { token: signAdminToken(String(admin._id)), admin: { email: admin.email, role: admin.role } },
+    data: { token: signAdminToken(String(admin._id)), admin: { username: admin.username, role: admin.role } },
   });
 });
 

@@ -87,6 +87,31 @@ export interface AdminMilkRow {
   dairy: { id: string; dairyName: string; ownerName: string } | null;
 }
 
+export interface ReferralMilestone {
+  id: string;
+  referrals: number;
+  reward: string;
+  rewardAmount: number;
+}
+
+export interface ReferralSettings {
+  enabled: boolean;
+  terms: string;
+  shareMessage: string;
+  milestones: ReferralMilestone[];
+  updatedAt?: string;
+}
+
+export interface ReferralLeader {
+  id: string;
+  ownerName: string;
+  dairyName: string;
+  mobile: string;
+  referralCode: string | null;
+  referralCount: number;
+  rewardsClaimed: string[];
+}
+
 export const money = (n: number) =>
   '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

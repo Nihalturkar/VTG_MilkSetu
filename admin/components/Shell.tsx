@@ -5,6 +5,9 @@ const LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/dairies', label: 'Registered Dairies' },
   { href: '/milk', label: 'Milk Records' },
+  { href: '/notice', label: 'Weekly Popup' },
+  { href: '/images', label: 'App Images' },
+  { href: '/referrals', label: 'Refer & Earn' },
 ];
 
 /** Sidebar layout. A desktop sidebar is allowed in the admin panel. */

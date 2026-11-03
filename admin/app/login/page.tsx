@@ -84,16 +84,17 @@ export default function LoginPage() {
 
           <form action={formAction} noValidate>
             <div className="login-field">
-              <label htmlFor="email">Email address</label>
+              <label htmlFor="username">Username</label>
               <input
-                id="email"
-                name="email"
-                type="email"
+                id="username"
+                name="username"
+                type="text"
                 required
                 autoFocus
                 autoComplete="username"
-                placeholder="you@example.com"
+                placeholder="Enter your username"
                 spellCheck={false}
+                autoCapitalize="none"
               />
             </div>
 

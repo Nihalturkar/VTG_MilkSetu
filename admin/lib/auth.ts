@@ -12,17 +12,17 @@ export interface LoginState {
 
 /** Server action: exchange credentials for an admin token cookie. */
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const email = String(formData.get('email') ?? '').trim();
+  const username = String(formData.get('username') ?? '').trim();
   const password = String(formData.get('password') ?? '');
 
-  if (!email || !password) return { error: 'Enter both email and password.' };
+  if (!username || !password) return { error: 'Enter both username and password.' };
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
       cache: 'no-store',
     });
   } catch {

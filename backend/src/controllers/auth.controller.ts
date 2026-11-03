@@ -2,6 +2,9 @@ import { RequestHandler } from 'express';
 import { z } from 'zod';
 import { Dairy } from '../models/Dairy';
 import { Session } from '../models/Session';
+import { getReferralSetting } from '../models/ReferralSetting';
+import { ensureReferralCode } from './referral.controller';
+import { REFERRAL_CODE_RE } from '../utils/domain';
 import { env } from '../config/env';
 import { hashToken, newSessionToken } from '../middleware/authenticate';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -18,6 +21,7 @@ export const registerSchema = z.object({
   mobile,
   dairyName: z.string().trim().min(2, 'डेयरी का नाम ज़रूरी है').max(80),
   deviceId: z.string().trim().min(8).max(128),
+  referralCode: z.string().trim().toUpperCase().regex(REFERRAL_CODE_RE, 'रेफरल कोड गलत है').optional(),
 });
 
 export const sessionSchema = z.object({
@@ -43,16 +47,32 @@ const publicDairy = (d: any) => ({
   dairyName: d.dairyName,
   status: d.status,
   rateSettings: d.rateSettings,
+  referralCode: d.referralCode ?? null,
+  referralCount: d.referralCount ?? 0,
 });
 
 export const register: RequestHandler = asyncHandler(async (req, res) => {
-  const { ownerName, mobile, dairyName, deviceId } = req.body as z.infer<typeof registerSchema>;
+  const { ownerName, mobile, dairyName, deviceId, referralCode } = req.body as z.infer<typeof registerSchema>;
 
   if (await Dairy.exists({ mobile })) {
     throw conflict('यह मोबाइल नंबर पहले से रजिस्टर्ड है', 'mobile_exists');
   }
 
-  const dairy = await Dairy.create({ ownerName, mobile, dairyName });
+  // An unknown or disabled code must not block the signup itself — the user
+  // still gets an account, they just don't get attributed.
+  let referredBy: unknown = null;
+  if (referralCode) {
+    const setting = await getReferralSetting();
+    if (setting.enabled) {
+      const referrer = await Dairy.findOne({ referralCode, status: 'active' }).select('_id').lean();
+      if (referrer) referredBy = referrer._id;
+    }
+  }
+
+  const dairy = await Dairy.create({ ownerName, mobile, dairyName, referredBy });
+  if (referredBy) await Dairy.updateOne({ _id: referredBy }, { $inc: { referralCount: 1 } });
+  await ensureReferralCode(dairy._id);
+
   const token = await issueSession(dairy._id, deviceId);
 
   res.status(201).json({ ok: true, data: { token, dairy: publicDairy(dairy) } });

@@ -1,5 +1,5 @@
 import { Schema, model, InferSchemaType, HydratedDocument } from 'mongoose';
-import { MILK_TYPES, RATE_MODES, RATE_MAX } from '../utils/domain';
+import { MILK_TYPES, RATE_MODES, RATE_MAX, REFERRAL_CODE_RE } from '../utils/domain';
 
 const rateSchema = new Schema(
   {
@@ -30,6 +30,15 @@ const dairySchema = new Schema(
         cow: { rateMode: 'perFatPoint', rate: 0 },
       }),
     },
+    // Own share code. Assigned on register; unique so it can be looked up directly.
+    referralCode: { type: String, match: REFERRAL_CODE_RE, unique: true, sparse: true },
+    // Who brought this dairy in. Null for organic signups, never self.
+    referredBy: { type: Schema.Types.ObjectId, ref: 'Dairy', default: null, index: true },
+    // Denormalised count of successful referrals, kept in step with referredBy
+    // so the referral page and milestone checks don't re-count on every read.
+    referralCount: { type: Number, default: 0, min: 0 },
+    // Milestone ids already paid out, so a reward is granted at most once.
+    referralRewardsClaimed: { type: [String], default: [] },
   },
   { timestamps: true },
 );
