@@ -15,3 +15,10 @@ export const RATE_MAX = 5000;
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
+
+export const EXPENSE_CATEGORIES = ['feed', 'medicine', 'labour', 'transport', 'other'] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+/** 'shared' = a cost not attributable to one animal (labour, electricity). */
+export const EXPENSE_SCOPES = [...MILK_TYPES, 'shared'] as const;
+export type ExpenseScope = (typeof EXPENSE_SCOPES)[number];
+export const EXPENSE_MAX = 1_000_000;

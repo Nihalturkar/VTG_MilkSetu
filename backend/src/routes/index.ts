@@ -7,6 +7,7 @@ import * as milk from '../controllers/milk.controller';
 import * as rates from '../controllers/rates.controller';
 import * as dashboard from '../controllers/dashboard.controller';
 import * as reports from '../controllers/reports.controller';
+import * as expenses from '../controllers/expense.controller';
 import * as admin from '../controllers/admin.controller';
 
 const router = Router();
@@ -34,6 +35,10 @@ router.get('/milk', authenticate, validate('query', milk.listMilkSchema), milk.l
 
 router.get('/rates', authenticate, rates.getRates);
 router.put('/rates', authenticate, validate('body', rates.updateRatesSchema), rates.updateRates);
+
+router.post('/expenses', authenticate, validate('body', expenses.createExpenseSchema), expenses.createExpense);
+router.get('/expenses', authenticate, validate('query', expenses.listExpenseSchema), expenses.listExpenses);
+router.get('/profit', authenticate, validate('query', expenses.profitSchema), expenses.getProfit);
 
 router.get('/reports', authenticate, validate('query', reports.reportSchema), reports.getReport);
 router.get('/reports/pdf', authenticate, validate('query', reports.reportSchema), reports.getReportPdf);

@@ -209,7 +209,54 @@ async function call(method, path, { token, body } = {}) {
   chk('row exposes appliedRate', 'number', typeof detail?.items?.[0]?.appliedRate);
   chk('row exposes rateMode', 'string', typeof detail?.items?.[0]?.rateMode);
 
-  console.log('[15] PDF');
+  console.log('[15] Expenses + profit/loss');
+  const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+  // Fixture so far: buffalo income 900, cow income 600 (all dated today).
+  await call('POST', '/expenses', {
+    token: T1,
+    body: { category: 'feed', milkType: 'buffalo', amount: 300, note: '2 bori dana' },
+  });
+  await call('POST', '/expenses', {
+    token: T1,
+    body: { category: 'medicine', milkType: 'cow', amount: 100 },
+  });
+  await call('POST', '/expenses', {
+    token: T1,
+    body: { category: 'labour', milkType: 'shared', amount: 200 },
+  });
+
+  chk('expense rejects zero', 'validation_error',
+    (await call('POST', '/expenses', { token: T1, body: { category: 'feed', milkType: 'buffalo', amount: 0 } })).json?.error?.code);
+  chk('expense rejects bad category', 'validation_error',
+    (await call('POST', '/expenses', { token: T1, body: { category: 'petrol', milkType: 'buffalo', amount: 10 } })).json?.error?.code);
+  chk('expense rejects future date', 'future_date',
+    (await call('POST', '/expenses', { token: T1, body: { spentOn: '2099-01-01', category: 'feed', milkType: 'buffalo', amount: 10 } })).json?.error?.code);
+  chk('expense needs auth', 'unauthorized',
+    (await call('POST', '/expenses', { body: { category: 'feed', milkType: 'buffalo', amount: 10 } })).json?.error?.code);
+
+  chk('expenses listed', 3, (await call('GET', '/expenses', { token: T1 })).json?.data?.total);
+  chk('expense list filters by animal', 1,
+    (await call('GET', '/expenses?milkType=cow', { token: T1 })).json?.data?.total);
+
+  const pl = (await call('GET', `/profit?from=${today}&to=${today}`, { token: T1 })).json?.data;
+  chk('buffalo income 900', 900, pl?.buffalo?.income);
+  chk('buffalo expense 300', 300, pl?.buffalo?.expense);
+  chk('buffalo profit 600', 600, pl?.buffalo?.profit);
+  chk('cow income 600', 600, pl?.cow?.income);
+  chk('cow expense 100', 100, pl?.cow?.expense);
+  chk('cow profit 500', 500, pl?.cow?.profit);
+  // Shared costs are NOT split into either animal, only into the overall total.
+  chk('shared expense reported apart', 200, pl?.sharedExpense);
+  chk('overall income 1500', 1500, pl?.overall?.income);
+  chk('overall expense 600', 600, pl?.overall?.expense);
+  chk('overall profit 900', 900, pl?.overall?.profit);
+  chk('overall = per-animal minus shared', true,
+    pl?.overall?.profit === pl?.buffalo?.profit + pl?.cow?.profit - pl?.sharedExpense);
+  chk('category breakdown feed', 300, pl?.byCategory?.feed);
+  chk('profit isolated per dairy', 0,
+    (await call('GET', `/profit?from=${today}&to=${today}`, { token: T2 })).json?.data?.overall?.income);
+
+  console.log('[16] PDF');
   const pdf = await call('GET', '/reports/pdf', { token: T1 });
   chk('pdf magic bytes', '%PDF', pdf.buf.subarray(0, 4).toString());
   chk('pdf non-trivial size', true, pdf.buf.length > 2000);
